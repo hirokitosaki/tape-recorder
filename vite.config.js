@@ -7,6 +7,7 @@ export default defineConfig({
     },
     build: {
         target: "es2020",
+        outDir: '../dist',
     },
     optimizeDeps: {
         esbuildOptions: { target: "es2020", supported: { bigint: true } },
