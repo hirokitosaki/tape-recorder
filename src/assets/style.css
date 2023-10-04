@@ -64,7 +64,6 @@ body {
   font-size: 3.8vw ;
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(4,5em);
   text-align: center;
   padding: 0;
   margin:2vw 0 0;
