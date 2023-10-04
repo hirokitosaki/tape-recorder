@@ -11,6 +11,7 @@ async function setup() {
     const outputNode = context.createGain();
     outputNode.connect(context.destination);
 
+
     // Fetch the exported patcher
     let response, patcher;
     try {
@@ -35,6 +36,7 @@ async function setup() {
         }
         return;
     }
+    // Create the device
     let device;
     try {
         device = await createDevice({ context, patcher });
@@ -47,19 +49,18 @@ async function setup() {
         return;
     }
 
-    // Load our sample as an ArrayBuffer;
-    const fileResponse = await fetch("./rnbo/media/018.wav");
-    const arrayBuf = await fileResponse.arrayBuffer();
-    // Decode the received Data as an AudioBuffer
-    const audioBuf = await context.decodeAudioData(arrayBuf);
-    console.log(audioBuf)
-    // Set the DataBuffer on the device
-    await device.setDataBuffer("sample01", audioBuf);
+    const handleSuccess = (stream) => {
+        const source = context.createMediaStreamSource(stream);
+        source.connect(device.node);
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(handleSuccess);
+
     // Connect the device to the web audio graph
     device.node.connect(outputNode);
-
     receiveMidiCC(device)
 
+    // Subscribe to the messageEvent
     device.messageEvent.subscribe((ev) => {
         displayValueFromRNBO(ev.tag, ev.payload)
         const rects = document.querySelectorAll('.rect')
@@ -68,7 +69,6 @@ async function setup() {
                 rect.style.transform = `rotate(${ev.payload / 25 * -1}deg)`
             })
         }
-
     });
 }
 document.querySelector('body').addEventListener('click', function() {
@@ -88,15 +88,12 @@ const displayValueFromRNBO = (target, value) => {
     values[target] = value
     const changeTarget = document.querySelector(`*[data-type="${target}"]`)
     if(target === 'speed') {
-    changeTarget.innerText = Math.floor( values.speed[0] * Math.pow( 10, 2 ) ) / Math.pow( 10, 2 ) ;
-
-
+        changeTarget.innerText = Math.floor( values.speed[0] * Math.pow( 10, 2 ) ) / Math.pow( 10, 2 ) ;
     }
     else if(changeTarget)
     changeTarget.innerText = msToTime(value);
 
     if(target === 'end') {
-        console.log(values)
         const length = document.querySelector(`*[data-type="length"]`)
         length.innerText = values.end - values.start;
     }
@@ -114,7 +111,6 @@ function msToTime(duration) {
 const receiveMidiCC = (device) => {
     navigator.requestMIDIAccess().then((midiAccess) => {
         midiAccess.inputs.forEach((input) => {
-            // printString(input.name)
             input.onmidimessage = function (msg) {
                 const message = [msg.data[0] , msg.data[1] , msg.data[2]]
                 const event = new MIDIEvent(TimeNow, 0, message);
